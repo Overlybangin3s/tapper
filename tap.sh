@@ -1,17 +1,15 @@
 #!/system/bin/sh
 # ============================================================
-# tap.sh — the actual autotapper. Edit this, push to GitHub,
-# and the phone picks it up automatically within ~2 minutes.
-#
-# Pure shell: uses Android's built-in `input tap X Y`.
-# Find coordinates with Developer options > "Pointer location".
+# tap.sh — taps via sendevent (raw kernel input, no `input`).
+# Sources the tap engine shipped in the Magisk module.
 # ============================================================
+
+LIB="${MODTAP:-/data/adb/modules/autotapper/tapper}"
+. "$LIB/taplib.sh"
 
 INTERVAL=2   # seconds between taps
 
 while true; do
-  input tap 540 1200
-  sleep "$INTERVAL"
-  input tap 540 1600
+  tap_px 1000 500
   sleep "$INTERVAL"
 done
