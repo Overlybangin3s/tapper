@@ -1,7 +1,8 @@
 #!/system/bin/sh
 # ============================================================
-# tap.sh — force Settings to its MAIN screen, wait until it's
-# actually there, then tap the "Notifications" row by name.
+# tap.sh — force Settings to its main screen, dump ONCE, verify
+# Notifications is present, then tap it reusing that same dump.
+# (Single dump avoids the race where a second dump disagrees.)
 # ============================================================
 
 LIB="${MODTAP:-/data/adb/modules/autotapper/tapper}"
@@ -9,31 +10,31 @@ LIB="${MODTAP:-/data/adb/modules/autotapper/tapper}"
 
 log(){ echo "$(date '+%H:%M:%S') $*"; }
 
-# Force Settings to the front AND reset to its main screen even if
-# it's already open on a subpage:
-#   --activity-clear-top + NEW_TASK pops back to the root Settings activity.
+DUMP=/data/local/tmp/ui.xml
+
 log "opening Settings (forced to main)"
 am start -a android.settings.SETTINGS \
    --activity-clear-top --activity-clear-task -f 0x10000000 >/dev/null 2>&1
-# (0x10000000 = FLAG_ACTIVITY_NEW_TASK)
 
-# Wait until "Notifications" is visible before acting.
-i=0
-while [ $i -lt 10 ]; do
-  uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
-  if grep -q 'text="Notifications"' /data/local/tmp/ui.xml 2>/dev/null; then
-    log "Settings main screen is up"
+# Dump repeatedly until Notifications shows up (settles after load).
+i=0; FOUND=0
+while [ $i -lt 12 ]; do
+  uiautomator dump "$DUMP" >/dev/null 2>&1
+  if grep -q 'text="Notifications"' "$DUMP" 2>/dev/null; then
+    log "Settings main screen is up (dump $i)"
+    FOUND=1
     break
   fi
   i=$((i+1))
   sleep 1
 done
 
-if [ $i -ge 10 ]; then
+if [ $FOUND -eq 0 ]; then
   log "gave up: Notifications never appeared"
   exit 1
 fi
 
-log "finding + tapping Notifications"
-sh "$LIB/findtap.sh" "Notifications"
+# Tap reusing THIS dump — no second dump, no race.
+log "tapping Notifications from verified dump"
+REUSE_DUMP=1 FINDTAP_DUMP="$DUMP" sh "$LIB/findtap.sh" "Notifications"
 log "done"
