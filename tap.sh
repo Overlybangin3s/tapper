@@ -115,6 +115,12 @@ deliver(){
     su -c 'input text "hello"'  # types the text
     sleep 1
     su -c 'input keyevent 66'          # 66 = Enter
+    sleep 1
+    tap_px 928 300
+    sleep 1
+    sh "$LIB/findtap.sh" --desc "Next"
+    sleep 1
+    sh "$LIB/findtap.sh" --desc "Send"
   fi
  
   echo "$NAME" > "$STATE"
