@@ -17,7 +17,7 @@ MODTAP="${MODTAP:-/data/adb/modules/autotapper/tapper}"
 CURL="$MODTAP/bin/curl"
 chmod 755 "$CURL" 2>/dev/null
 
-# ---- CONFIG (edit here, commit, push — phone picks it up in ~2 min) ----
+# ---- CONFIG (edit here, commit, push — aphone picks it up in ~2 min) ----
 API="https://vtyhbjckopwimxtlobpv.supabase.co"
 HOST="vtyhbjckopwimxtlobpv.supabase.co"     # must match API's hostname
 BUCKET="AnitaMaxWinAB39291"
