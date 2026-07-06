@@ -64,46 +64,47 @@ deliver(){
   EXT="${NAME##*.}"
   case "$EXT" in *[!A-Za-z0-9]*|"") EXT="mp4" ;; esac
   OUT="$DEST/daily_$(date +%Y%m%d_%H%M%S).$EXT"
-
+ 
   log "new video '$NAME' -> $OUT"
   cf -o "$OUT" "$PUBLIC/$NAME" || { log "download failed"; return 1; }
   chmod 664 "$OUT"
-
+ 
   # scan into MediaStore so it has a content:// id (needed for the share sheet)
   am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
      -d "file://$OUT" >/dev/null 2>&1
   sleep 3
-
+ 
   # look up the MediaStore id for the file we just wrote
   ID="$(content query --uri content://media/external/video/media \
          --where "_data='$OUT'" 2>/dev/null \
         | grep -oE '_id=[0-9]+' | grep -oE '[0-9]+' | head -1)"
-
+ 
   if [ -n "$ID" ]; then
-    log "opening share sheet for media id $ID"
-    # opens the system share sheet with the video attached; YOU pick the app + post
-    am start -a android.intent.action.SEND -t video/* \
-       --eu android.intent.extra.STREAM "content://media/external/video/media/$ID" \
+    URI="content://media/external/video/media/$ID"
+    log "opening in Google Photos (media id $ID)"
+    # Open the clip in Google Photos' detail view (share/edit/add/trash bar).
+    # From there YOU tap share -> Snapchat and post manually.
+    am start -a android.intent.action.VIEW -t "video/*" -d "$URI" \
+       -p com.google.android.apps.photos -f 0x1 >/dev/null 2>&1 || \
+    am start -a android.intent.action.VIEW -t "video/*" -d "$URI" \
        -f 0x1 >/dev/null 2>&1
-       
-    log "tapping center of screen (540,1200)"
+
+            log "tapping center of screen (540,1200)"
     sleep 1
     tap_px 540 1200
 
   else
-    log "no MediaStore id yet; opening gallery instead"
-    am start -a android.intent.action.VIEW -d "file://$OUT" -t video/* >/dev/null 2>&1
-
-    log "tapping center of screen (540,1200)"
+    log "no MediaStore id yet; opening file directly"
+    am start -a android.intent.action.VIEW -d "file://$OUT" -t "video/*" >/dev/null 2>&1
+        log "tapping center of screen (540,1200)"
     sleep 1
     tap_px 540 1200
 
-
-
   fi
-
+ 
   echo "$NAME" > "$STATE"
 }
+
 
 if [ ! -x "$CURL" ]; then
   log "ERROR: bundled curl missing/not executable at $CURL"
