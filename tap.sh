@@ -91,6 +91,13 @@ deliver(){
   else
     log "no MediaStore id yet; opening gallery instead"
     am start -a android.intent.action.VIEW -d "file://$OUT" -t video/* >/dev/null 2>&1
+
+    log "tapping center of screen (540,1200)"
+    sleep 1
+    tap_px 540 1200
+
+
+
   fi
 
   echo "$NAME" > "$STATE"
