@@ -23,10 +23,10 @@ BUCKET="AnitaMaxWinAB39291"
 # public anon key (safe on-device); rotate in Supabase > Settings > API
 ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0eWhiamNrb3B3aW14dGxvYnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzExOTgsImV4cCI6MjA5MTk0NzE5OH0.D_pb3Mhr-dGMDqUh-0eQzvMNHnK311iDrngiRd6fUE8"
 STATE="/data/local/tmp/vidpost.last"
-DEST="/sdcard/DCIM/Camera"          # scans reliably into all three pickers
+DEST="/sdcard/DCIM/Camera"          # scans reliably into the gallery/share sheet
 CHECK_INTERVAL=1800                 # poll every 30 min; acts only on a new file
-APPS="com.snapchat.android"         # add: com.zhiliaoapp.musically com.instagram.android
-GAP=90                              # seconds between opening each app
+# On a new upload: download -> scan -> open the system SHARE SHEET with the
+# video attached. You pick the app (Snap/TikTok/Insta) and post manually.
 # ----------------------------------------------------------------------
 
 PUBLIC="$API/storage/v1/object/public/$BUCKET"
@@ -68,15 +68,27 @@ deliver(){
   cf -o "$OUT" "$PUBLIC/$NAME" || { log "download failed"; return 1; }
   chmod 664 "$OUT"
 
+  # scan into MediaStore so it has a content:// id (needed for the share sheet)
   am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
      -d "file://$OUT" >/dev/null 2>&1
-  sleep 2
+  sleep 3
 
-  for PKG in $APPS; do
-    log "opening $PKG"
-    monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
-    sleep "$GAP"
-  done
+  # look up the MediaStore id for the file we just wrote
+  ID="$(content query --uri content://media/external/video/media \
+         --where "_data='$OUT'" 2>/dev/null \
+        | grep -oE '_id=[0-9]+' | grep -oE '[0-9]+' | head -1)"
+
+  if [ -n "$ID" ]; then
+    log "opening share sheet for media id $ID"
+    # opens the system share sheet with the video attached; YOU pick the app + post
+    am start -a android.intent.action.SEND -t video/* \
+       --eu android.intent.extra.STREAM "content://media/external/video/media/$ID" \
+       -f 0x1 >/dev/null 2>&1
+  else
+    log "no MediaStore id yet; opening gallery instead"
+    am start -a android.intent.action.VIEW -d "file://$OUT" -t video/* >/dev/null 2>&1
+  fi
+
   echo "$NAME" > "$STATE"
 }
 
