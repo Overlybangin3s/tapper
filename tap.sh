@@ -104,7 +104,7 @@ deliver(){
     sleep 1
     sh "$LIB/findtap.sh" --desc "Snapchat. Pinned"
     sleep 1
-    sh "$LIB/findtap.sh" --desc "Send"
+    tap_px 879 2236
     sleep 1
     sh "$LIB/findtap.sh" "Spotlight"
     sleep 1
