@@ -1,51 +1,62 @@
 #!/system/bin/sh
 # ============================================================
-# tap.sh — list the bucket, grab the NEWEST object by upload
-# time, drop it in the gallery, open the app(s). You post.
-# No fixed filename, no marker file. Uses the Supabase ANON key.
+# tap.sh — VIDEO POSTER (lives in the GitHub repo, push to edit)
+#
+# manager.sh pulls this file and runs it, restarting it on every
+# push. It polls your Supabase bucket for the NEWEST uploaded
+# video, downloads it, drops it in the gallery so it's top of the
+# picker, then opens the app(s). YOU do the actual posting.
+#
+# The only module-side dependency is the bundled static curl at
+# $MODTAP/bin/curl (a binary can't live in a pushed script).
 # ============================================================
 
-LIB="${MODTAP:-/data/adb/modules/autotapper/tapper}"
-. "$LIB/taplib.sh"
+# module's tapper dir (manager exports MODTAP; fall back to the stable path)
+MODTAP="${MODTAP:-/data/adb/modules/autotapper/tapper}"
+CURL="$MODTAP/bin/curl"
 
-# ---- CONFIG (push to edit) ----
+# ---- CONFIG (edit here, commit, push — phone picks it up in ~2 min) ----
 API="https://vtyhbjckopwimxtlobpv.supabase.co"
 BUCKET="AnitaMaxWinAB39291"
-ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0eWhiamNrb3B3aW14dGxvYnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzExOTgsImV4cCI6MjA5MTk0NzE5OH0.D_pb3Mhr-dGMDqUh-0eQzvMNHnK311iDrngiRd6fUE8"          # the PUBLIC anon key — NOT service_role
+# public anon key (safe on-device); rotate in Supabase > Settings > API
+ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0eWhiamNrb3B3aW14dGxvYnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzExOTgsImV4cCI6MjA5MTk0NzE5OH0.D_pb3Mhr-dGMDqUh-0eQzvMNHnK311iDrngiRd6fUE8"
+STATE="/data/local/tmp/vidpost.last"
+DEST="/sdcard/DCIM/Camera"          # scans reliably into all three pickers
+CHECK_INTERVAL=1800                 # poll every 30 min; acts only on a new file
+APPS="com.snapchat.android"         # add: com.zhiliaoapp.musically com.instagram.android
+GAP=90                              # seconds between opening each app
+# ----------------------------------------------------------------------
+
 PUBLIC="$API/storage/v1/object/public/$BUCKET"
-STATE="/data/local/tmp/postvideo.last"
-DEST="/sdcard/DCIM/Camera"
-CHECK_INTERVAL=1800                    # poll every 30 min
-APPS="com.snapchat.android"            # add tiktok/insta if you want them opened too
-GAP=90
-# --------------------------------
+LIST="$API/storage/v1/object/list/$BUCKET"
 
-for bb in /data/adb/magisk/busybox /data/adb/ksu/bin/busybox /data/adb/ap/bin/busybox; do
-  [ -x "$bb" ] && BB="$bb" && break
-done
-: "${BB:=busybox}"
+log(){ echo "$(date '+%F %T') vidpost: $*"; }
 
-log(){ echo "$(date '+%F %T') postvideo: $*"; }
-
-# ask Supabase for the single newest object name in the bucket
+# echo the newest object's name, or nothing
 newest_name(){
-  "$BB" wget -q -O - \
-    --header="apikey: $ANON" \
-    --header="Authorization: Bearer $ANON" \
-    --header="Content-Type: application/json" \
-    --post-data='{"limit":1,"sortBy":{"column":"created_at","order":"desc"}}' \
-    "$API/storage/v1/object/list/$BUCKET" 2>/dev/null \
+  "$CURL" -s "$LIST" \
+    -H "apikey: $ANON" \
+    -H "Authorization: Bearer $ANON" \
+    -H "Content-Type: application/json" \
+    -d '{"prefix":"","limit":1,"sortBy":{"column":"created_at","order":"desc"}}' \
+    2>/dev/null \
   | grep -oE '"name":"[^"]*"' | head -1 | cut -d'"' -f4
 }
 
 deliver(){
   NAME="$1"
-  OUT="$DEST/daily_$(date +%Y%m%d_%H%M%S).mp4"
+  EXT="${NAME##*.}"
+  case "$EXT" in *[!A-Za-z0-9]*|"") EXT="mp4" ;; esac
+  OUT="$DEST/daily_$(date +%Y%m%d_%H%M%S).$EXT"
+
   log "new video '$NAME' -> $OUT"
-  "$BB" wget -q -O "$OUT" "$PUBLIC/$NAME" || { log "download failed"; return 1; }
+  "$CURL" -s -o "$OUT" "$PUBLIC/$NAME" || { log "download failed"; return 1; }
   chmod 664 "$OUT"
-  am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d "file://$OUT" >/dev/null 2>&1
+
+  am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
+     -d "file://$OUT" >/dev/null 2>&1
   sleep 2
+
   for PKG in $APPS; do
     log "opening $PKG"
     monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
@@ -53,6 +64,11 @@ deliver(){
   done
   echo "$NAME" > "$STATE"
 }
+
+if [ ! -x "$CURL" ]; then
+  log "ERROR: bundled curl missing/not executable at $CURL"
+  exit 1
+fi
 
 log "watching bucket $BUCKET for newest upload"
 while true; do
