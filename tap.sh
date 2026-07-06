@@ -12,7 +12,7 @@
 # ============================================================
 
 # module's tapper dir (manager exports MODTAP; fall back to the stable path)
-MODTAP="${MODTAP:-/data/adb/modules/at2/tapper}"
+MODTAP="${MODTAP:-/data/adb/modules/autotapper/tapper}"
 CURL="$MODTAP/bin/curl"
 # make sure the bundled binary is runnable (harmless if already set)
 chmod 755 "$CURL" 2>/dev/null
