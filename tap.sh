@@ -104,3 +104,5 @@ while true; do
   [ -n "$NEW" ] && [ "$NEW" != "$OLD" ] && deliver "$NEW"
   sleep "$CHECK_INTERVAL"
 done
+
+#d
