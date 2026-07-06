@@ -103,6 +103,18 @@ deliver(){
     sh "$LIB/findtap.sh" --desc "Share"
     sleep 1
     sh "$LIB/findtap.sh" --desc "Snapchat. Pinned"
+    sleep 1
+    sh "$LIB/findtap.sh" --desc "Send"
+    sleep 1
+    sh "$LIB/findtap.sh" "Spotlight"
+    sleep 1
+    tap_px 837 992
+    sleep 1
+    sh "$LIB/findtap.sh" "Add a description..."
+    sleep 1
+    su -c 'input text "hello"'  # types the text
+    sleep 1
+    su -c 'input keyevent 66'          # 66 = Enter
   fi
  
   echo "$NAME" > "$STATE"
