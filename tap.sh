@@ -14,6 +14,8 @@
 # module's tapper dir (manager exports MODTAP; fall back to the stable path)
 MODTAP="${MODTAP:-/data/adb/modules/autotapper/tapper}"
 CURL="$MODTAP/bin/curl"
+# make sure the bundled binary is runnable (harmless if already set)
+chmod 755 "$CURL" 2>/dev/null
 
 # ---- CONFIG (edit here, commit, push — phone picks it up in ~2 min) ----
 API="https://vtyhbjckopwimxtlobpv.supabase.co"
