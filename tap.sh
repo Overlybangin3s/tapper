@@ -100,7 +100,7 @@ deliver(){
     sleep 1
     tap_px 540 1200
     sleep 1 
-    sh findtap.sh "Share"
+    sh "$LIB/findtap.sh" --desc "Share"
   fi
  
   echo "$NAME" > "$STATE"
