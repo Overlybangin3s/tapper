@@ -99,7 +99,8 @@ deliver(){
         log "tapping center of screen (540,1200)"
     sleep 1
     tap_px 540 1200
-
+    sleep 1 
+    sh findtap.sh "Share"
   fi
  
   echo "$NAME" > "$STATE"
