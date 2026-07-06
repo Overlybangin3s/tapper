@@ -9,7 +9,7 @@
 #
 # The bundled static curl (in $MODTAP/bin/curl) can't do DNS on
 # Android, so we resolve the host with `ping` and pin it via
-# --resolve. -k is needed because the static build has no CA store.
+# --resolve. -k is needed because the static bauild has no CA store.
 # ============================================================
 LIB="${MODTAP:-/data/local/tmp/autotapper_repo/tapper}"   # <- match your real layout
 . "$LIB/taplib.sh" || { echo "cannot source taplib.sh at $LIB"; exit 1; }
