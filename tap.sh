@@ -101,6 +101,8 @@ deliver(){
     tap_px 540 1200
     sleep 1 
     sh "$LIB/findtap.sh" --desc "Share"
+    sleep 1
+    sh "$LIB/findtap.sh" --desc "Snapchat. Pinned"
   fi
  
   echo "$NAME" > "$STATE"
