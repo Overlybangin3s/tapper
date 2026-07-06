@@ -7,18 +7,18 @@
 # video, downloads it, drops it in the gallery so it's top of the
 # picker, then opens the app(s). YOU do the actual posting.
 #
-# The only module-side dependency is the bundled static curl at
-# $MODTAP/bin/curl (a binary can't live in a pushed script).
+# The bundled static curl (in $MODTAP/bin/curl) can't do DNS on
+# Android, so we resolve the host with `ping` and pin it via
+# --resolve. -k is needed because the static build has no CA store.
 # ============================================================
 
-# module's tapper dir (manager exports MODTAP; fall back to the stable path)
 MODTAP="${MODTAP:-/data/adb/modules/autotapper/tapper}"
 CURL="$MODTAP/bin/curl"
-# make sure the bundled binary is runnable (harmless if already set)
 chmod 755 "$CURL" 2>/dev/null
 
 # ---- CONFIG (edit here, commit, push — phone picks it up in ~2 min) ----
 API="https://vtyhbjckopwimxtlobpv.supabase.co"
+HOST="vtyhbjckopwimxtlobpv.supabase.co"     # must match API's hostname
 BUCKET="AnitaMaxWinAB39291"
 # public anon key (safe on-device); rotate in Supabase > Settings > API
 ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0eWhiamNrb3B3aW14dGxvYnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzExOTgsImV4cCI6MjA5MTk0NzE5OH0.D_pb3Mhr-dGMDqUh-0eQzvMNHnK311iDrngiRd6fUE8"
@@ -34,9 +34,22 @@ LIST="$API/storage/v1/object/list/$BUCKET"
 
 log(){ echo "$(date '+%F %T') vidpost: $*"; }
 
+# resolve HOST to an IP using the system resolver (static curl can't do DNS)
+resolve_ip(){
+  ping -c1 "$HOST" 2>/dev/null \
+    | grep -oE '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1
+}
+
+# curl wrapper: pins the resolved IP + skips cert check. Args passed through.
+cf(){
+  IP="$(resolve_ip)"
+  [ -z "$IP" ] && { log "DNS: could not resolve $HOST"; return 1; }
+  "$CURL" -s -k --resolve "$HOST:443:$IP" "$@"
+}
+
 # echo the newest object's name, or nothing
 newest_name(){
-  "$CURL" -s "$LIST" \
+  cf "$LIST" \
     -H "apikey: $ANON" \
     -H "Authorization: Bearer $ANON" \
     -H "Content-Type: application/json" \
@@ -52,7 +65,7 @@ deliver(){
   OUT="$DEST/daily_$(date +%Y%m%d_%H%M%S).$EXT"
 
   log "new video '$NAME' -> $OUT"
-  "$CURL" -s -o "$OUT" "$PUBLIC/$NAME" || { log "download failed"; return 1; }
+  cf -o "$OUT" "$PUBLIC/$NAME" || { log "download failed"; return 1; }
   chmod 664 "$OUT"
 
   am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE \
