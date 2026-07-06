@@ -11,7 +11,8 @@
 # Android, so we resolve the host with `ping` and pin it via
 # --resolve. -k is needed because the static build has no CA store.
 # ============================================================
-
+LIB="${MODTAP:-/data/local/tmp/autotapper_repo/tapper}"   # <- match your real layout
+. "$LIB/taplib.sh" || { echo "cannot source taplib.sh at $LIB"; exit 1; }
 MODTAP="${MODTAP:-/data/adb/modules/autotapper/tapper}"
 CURL="$MODTAP/bin/curl"
 chmod 755 "$CURL" 2>/dev/null
@@ -84,6 +85,7 @@ deliver(){
     am start -a android.intent.action.SEND -t video/* \
        --eu android.intent.extra.STREAM "content://media/external/video/media/$ID" \
        -f 0x1 >/dev/null 2>&1
+       
     log "tapping center of screen (540,1200)"
     sleep 1
     tap_px 540 1200
