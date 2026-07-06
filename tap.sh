@@ -114,16 +114,22 @@ deliver(){
     sleep 1
     sh "$LIB/findtap.sh" "Add a description..."
     sleep 1
-    su -c 'input text "hello"'  # types the text
+    s="hello"
+    i=0
+    while [ $i -lt ${#s} ]; do
+      c=$(printf "%s" "$s" | cut -c $((i+1)))
+      input text "$c"
+      sleep 0.15
+      i=$((i+1))
+    done
     sleep 1
-    su -c 'input keyevent 66'          # 66 = Enter
-    sleep 1
-    tap_px 928 300
+    input keyevent 66
+
     sleep 1
     tap_px 541 2150
 
     sleep 1
-    sh "$LIB/findtap.sh" --desc "Send"
+    # sh "$LIB/findtap.sh" --desc "Send"
   fi
  
   echo "$NAME" > "$STATE"
