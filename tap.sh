@@ -120,7 +120,7 @@ deliver(){
     sleep 1
     tap_px 928 300
     sleep 1
-    sh "$LIB/findtap.sh" --desc "Next"
+    sh "$LIB/findtap.sh" "Next"
     sleep 1
     sh "$LIB/findtap.sh" --desc "Send"
   fi
