@@ -1,8 +1,11 @@
 #!/system/bin/sh
 # Magisk runs this on every boot, as root, in the background.
-# Update path: Magisk Manager "Update" button (see updateJson in module.prop).
-# No token, no self-poll loop, no bundled curl.
+# Update path: Magisk Manager "Update" button (updateJson in module.prop).
 MODDIR=${0%/*}
+
+# Bundled static curl is used by tap.sh — restore the exec bit
+# (zip installs / update-flashes can drop it).
+chmod 755 "$MODDIR/tapper/bin/curl" 2>/dev/null
 
 # Wait for boot + network to settle.
 sleep 45

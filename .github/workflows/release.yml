@@ -1,0 +1,72 @@
+name: Build & Release Magisk Module
+
+# Trigger: every push to master. The job commits update.json/module.prop
+# back, so paths-ignore stops that bot commit from retriggering (no loop).
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'update.json'
+      - 'module.prop'
+      - 'changelog.md'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Derive version
+        id: ver
+        run: |
+          CODE=$(( GITHUB_RUN_NUMBER + 100 ))     # always climbs, starts >installed(2)
+          TAG="v1.${CODE}"                        # synthesized label, e.g. v1.101
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG"   >> "$GITHUB_OUTPUT"
+
+      - name: Stamp module.prop
+        run: |
+          sed -i "s/^version=.*/version=${{ steps.ver.outputs.tag }}/"        module.prop
+          sed -i "s/^versionCode=.*/versionCode=${{ steps.ver.outputs.code }}/" module.prop
+          echo "----- module.prop -----"; cat module.prop
+
+      - name: Build flashable zip (files at ROOT)
+        run: |
+          zip -r autotapper.zip module.prop service.sh tapper -x '*.git*'
+          echo "----- zip contents -----"; unzip -l autotapper.zip
+
+      - name: Regenerate update.json
+        run: |
+          REPO="${GITHUB_REPOSITORY}"
+          TAG="${{ steps.ver.outputs.tag }}"
+          CODE="${{ steps.ver.outputs.code }}"
+          cat > update.json <<JSON
+          {
+            "version": "${TAG}",
+            "versionCode": ${CODE},
+            "zipUrl": "https://github.com/${REPO}/releases/download/${TAG}/autotapper.zip",
+            "changelog": "https://raw.githubusercontent.com/${REPO}/master/changelog.md"
+          }
+          JSON
+          echo "----- update.json -----"; cat update.json
+
+      - name: Create Release with zip attached
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          files: autotapper.zip
+
+      - name: Commit stamped files back
+        run: |
+          git config user.name  "github-actions"
+          git config user.email "actions@github.com"
+          git add update.json module.prop
+          git commit -m "release ${{ steps.ver.outputs.tag }} [skip ci]" || echo "nothing to commit"
+          git push origin HEAD:master
