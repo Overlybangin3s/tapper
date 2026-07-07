@@ -125,7 +125,7 @@ deliver(){
     sleep 1
     input keyevent 66
 
-    sleep 1
+    sleep 2
     tap_px 541 2150
 
     sleep 1
