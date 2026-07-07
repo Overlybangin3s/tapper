@@ -1,0 +1,31 @@
+mixed-port: 7890
+allow-lan: true
+mode: rule
+log-level: info
+
+dns:
+  enable: true
+  listen: 0.0.0.0:1053
+  enhanced-mode: fake-ip
+  nameserver:
+    - https://dns.google/dns-query
+    - https://1.1.1.1/dns-query
+
+proxies:
+  - name: "MyMobileProxy"
+    type: socks5
+    server: 104.131.164.187
+    port: 36714
+    username: ji2t82bqhO4U
+    password: K7sFIG8x0iLn
+    udp: true
+
+proxy-groups:
+  - name: "Proxy"
+    type: select
+    proxies:
+      - "MyMobileProxy"
+      - DIRECT
+
+rules:
+  - MATCH,Proxy
