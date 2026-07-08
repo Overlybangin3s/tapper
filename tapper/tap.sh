@@ -33,8 +33,49 @@ CHECK_INTERVAL=120                 # poll every 30 min; acts only on a new file
 
 PUBLIC="$API/storage/v1/object/public/$BUCKET"
 LIST="$API/storage/v1/object/list/$BUCKET"
-
+#function somewhere up here ? 
 log(){ echo "$(date '+%F %T') vidpost: $*"; }
+
+
+tap_flow(){
+
+    log "no MediaStore id yet; opening file directly"
+    am start -a android.intent.action.VIEW -d "file://$OUT" -t "video/*" >/dev/null 2>&1
+        log "tapping center of screen (540,1200)"
+    sleep 1
+    tap_px 540 1200
+    sleep 1 
+    sh "$LIB/findtap.sh" --desc "Share"
+    sleep 1
+    sh "$LIB/findtap.sh" --desc "Snapchat. Pinned"
+    sleep 3
+    log "tapping next to spot 879 2280"
+
+    tap_px 879 2280
+    sleep 1
+    sh "$LIB/findtap.sh" "Spotlight"
+    sleep 1
+    tap_px 837 992
+    sleep 1
+    sh "$LIB/findtap.sh" "Add a description..."
+    sleep 1
+    s="hello"
+    i=0
+    while [ $i -lt ${#s} ]; do
+      c=$(printf "%s" "$s" | cut -c $((i+1)))
+      input text "$c"
+      sleep 0.15
+      i=$((i+1))
+    done
+    sleep 1
+    input keyevent 66
+
+    sleep 2
+    tap_px 541 2150
+
+    sleep 1
+    # sh "$LIB/findtap.sh" --desc "Send"
+}
 
 # resolve HOST to an IP using the system resolver (static curl can't do DNS)
 resolve_ip(){
@@ -95,42 +136,7 @@ deliver(){
     tap_px 540 1200
 
   else
-    log "no MediaStore id yet; opening file directly"
-    am start -a android.intent.action.VIEW -d "file://$OUT" -t "video/*" >/dev/null 2>&1
-        log "tapping center of screen (540,1200)"
-    sleep 1
-    tap_px 540 1200
-    sleep 1 
-    sh "$LIB/findtap.sh" --desc "Share"
-    sleep 1
-    sh "$LIB/findtap.sh" --desc "Snapchat. Pinned"
-    sleep 3
-    log "tapping next to spot 879 2280"
-
-    tap_px 879 2280
-    sleep 1
-    sh "$LIB/findtap.sh" "Spotlight"
-    sleep 1
-    tap_px 837 992
-    sleep 1
-    sh "$LIB/findtap.sh" "Add a description..."
-    sleep 1
-    s="hello"
-    i=0
-    while [ $i -lt ${#s} ]; do
-      c=$(printf "%s" "$s" | cut -c $((i+1)))
-      input text "$c"
-      sleep 0.15
-      i=$((i+1))
-    done
-    sleep 1
-    input keyevent 66
-
-    sleep 2
-    tap_px 541 2150
-
-    sleep 1
-    # sh "$LIB/findtap.sh" --desc "Send"
+  tap_flow
   fi
  
   echo "$NAME" > "$STATE"
@@ -149,5 +155,21 @@ while true; do
   [ -n "$NEW" ] && [ "$NEW" != "$OLD" ] && deliver "$NEW"
   sleep "$CHECK_INTERVAL"
 done
+
+# ---- CLI dispatch: run one function from Termux, then exit ----
+# e.g.  MODTAP=/data/adb/modules/autotapper/tapper sh tap.sh tap_flow
+if [ -n "$1" ]; then
+  "$@"
+  exit $?
+fi
+
+if [ ! -x "$CURL" ]; then
+  log "ERROR: bundled curl missing/not executable at $CURL"
+  exit 1
+fi
+
+log "watching bucket $BUCKET for newest upload"
+while true; do
+  ...
 
 #daaaa
