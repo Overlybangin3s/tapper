@@ -25,7 +25,8 @@ BUCKET="AnitaMaxWinAB39291"
 ANON="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ0eWhiamNrb3B3aW14dGxvYnB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNzExOTgsImV4cCI6MjA5MTk0NzE5OH0.D_pb3Mhr-dGMDqUh-0eQzvMNHnK311iDrngiRd6fUE8"
 STATE="/data/local/tmp/vidpost.last"
 DEST="/sdcard/DCIM/Camera"          # scans reliably into the gallery/share sheet
-CHECK_INTERVAL=1800                 # poll every 30 min; acts only on a new file
+# CHECK_INTERVAL=1800                 # poll every 30 min; acts only on a new file
+CHECK_INTERVAL=120                 # poll every 30 min; acts only on a new file
 # On a new upload: download -> scan -> open the system SHARE SHEET with the
 # video attached. You pick the app (Snap/TikTok/Insta) and post manually.
 # ----------------------------------------------------------------------
