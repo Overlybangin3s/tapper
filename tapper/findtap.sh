@@ -87,9 +87,26 @@ tap_by(){
   tap_px "$CX" "$CY"
 }
 
+# tap at an x-offset from a matched element's center (same row / y).
+# usage: tap_by_offset "text=\"Spotlight\"" -250
+tap_by_offset(){
+  WHAT="$1"; DX="$2"
+  dump_ui || { echo "dump failed"; return 1; }
+  CENTER=$(find_center "$WHAT") || { echo "not found: $WHAT"; return 1; }
+  set -- $CENTER
+  CX=$1; CY=$2
+  [ -z "$CX" ] || [ -z "$CY" ] && { echo "bad coords for '$WHAT'"; return 1; }
+  TX=$(( CX + DX ))
+  echo "found '$WHAT' at $CX,$CY — tapping offset $DX -> $TX,$CY"
+  sleep "${TAP_SETTLE:-1.5}"
+  tap_px "$TX" "$CY"
+}
+
+
 # ---- CLI ----
 case "$1" in
-  --id)   tap_by "resource-id=\"$2\"" ;;
-  --desc) tap_by "content-desc=\"$2\"" ;;
-  *)      tap_by "text=\"$1\"" ;;
+  --id)     tap_by "resource-id=\"$2\"" ;;
+  --desc)   tap_by "content-desc=\"$2\"" ;;
+  --offset) tap_by_offset "text=\"$2\"" "$3" ;;   # findtap.sh --offset "Spotlight" -250
+  *)        tap_by "text=\"$1\"" ;;
 esac
