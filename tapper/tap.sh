@@ -55,7 +55,8 @@ tap_flow(){
     sleep 1
     sh "$LIB/findtap.sh" "Spotlight"
     sleep 1
-    tap_px 837 992
+    sh "$LIB/findtap.sh" --offset "Spotlight" -300
+ 
     sleep 1
     sh "$LIB/findtap.sh" "Add a description..."
     sleep 1
@@ -68,11 +69,11 @@ tap_flow(){
       i=$((i+1))
     done
     sleep 2
-    input keyevent 66
 
+    sh "$LIB/findtap.sh" --offset "Description" 330
     sleep 3
-    tap_px 541 2150
-
+    # tap_px 541 2150
+    sh "$LIB/findtap.sh" --desc "Next"
     sleep 1
     # sh "$LIB/findtap.sh" --desc "Send"
 }
