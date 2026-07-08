@@ -17,15 +17,21 @@ HERE="${MODTAP:-${0%/*}}"
 
 DUMP="${FINDTAP_DUMP:-/data/local/tmp/ui.xml}"
 
+# dump_ui(){
+#   # Always take a fresh dump (reuse proved fragile). A short settle delay
+#   # lets the screen finish rendering so the element is actually present.
+#   sleep 1
+#   uiautomator dump "$DUMP" >/dev/null 2>&1 || \
+#   uiautomator dump --compressed "$DUMP" >/dev/null 2>&1
+#   [ -s "$DUMP" ]
+# }
 dump_ui(){
-  # Always take a fresh dump (reuse proved fragile). A short settle delay
-  # lets the screen finish rendering so the element is actually present.
   sleep 1
-  uiautomator dump "$DUMP" >/dev/null 2>&1 || \
-  uiautomator dump --compressed "$DUMP" >/dev/null 2>&1
+  uiautomator dump "$DUMP" >/dev/null 2>&1
+  # uiautomator often returns non-zero even on success — trust the file,
+  # and do NOT fall back to --compressed (it strips resource-ids).
   [ -s "$DUMP" ]
 }
-
 # extract bounds="[x1,y1][x2,y2]" for the first node matching a pattern,
 # then echo the center pixel coords "cx cy"
 find_center(){
