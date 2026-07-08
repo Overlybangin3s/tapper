@@ -141,7 +141,11 @@ deliver(){
  
   echo "$NAME" > "$STATE"
 }
-
+# ---- CLI dispatch: run one function from Termux, then exit ----
+if [ -n "$1" ]; then
+  "$@"
+  exit $?
+fi
 
 if [ ! -x "$CURL" ]; then
   log "ERROR: bundled curl missing/not executable at $CURL"
@@ -155,21 +159,3 @@ while true; do
   [ -n "$NEW" ] && [ "$NEW" != "$OLD" ] && deliver "$NEW"
   sleep "$CHECK_INTERVAL"
 done
-
-# ---- CLI dispatch: run one function from Termux, then exit ----
-# e.g.  MODTAP=/data/adb/modules/autotapper/tapper sh tap.sh tap_flow
-if [ -n "$1" ]; then
-  "$@"
-  exit $?
-fi
-
-if [ ! -x "$CURL" ]; then
-  log "ERROR: bundled curl missing/not executable at $CURL"
-  exit 1
-fi
-
-log "watching bucket $BUCKET for newest upload"
-while true; do
-  ...
-
-#daaaa
