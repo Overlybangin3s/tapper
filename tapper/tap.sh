@@ -48,18 +48,18 @@ tap_flow(){
     sh "$LIB/findtap.sh" --desc "Share"
     sleep 1
     sh "$LIB/findtap.sh" --desc "Snapchat. Pinned"
-    sleep 3
-    log "tapping next to spot 879 2280"
+    sleep 4
+
     sh "$LIB/findtap.sh" --id "com.snapchat.android:id/sent_to_button_label_mode_view"
     # tap_px 879 2280
-    sleep 1
+    sleep 2
     sh "$LIB/findtap.sh" "Spotlight"
-    sleep 1
+    sleep 2
     sh "$LIB/findtap.sh" --offset "Spotlight" -300
  
-    sleep 1
+    sleep 2
     sh "$LIB/findtap.sh" "Add a description..."
-    sleep 1
+    sleep 2
     s="hello"
     i=0
     while [ $i -lt ${#s} ]; do
