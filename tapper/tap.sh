@@ -50,8 +50,8 @@ tap_flow(){
     sh "$LIB/findtap.sh" --desc "Snapchat. Pinned"
     sleep 4
 
-    sh "$LIB/findtap.sh" --id "com.snapchat.android:id/sent_to_button_label_mode_view"
-    # tap_px 879 2280
+    # sh "$LIB/findtap.sh" --id "com.snapchat.android:id/sent_to_button_label_mode_view"
+    tap_px 879 2280
     sleep 2
     sh "$LIB/findtap.sh" "Spotlight"
     sleep 2
