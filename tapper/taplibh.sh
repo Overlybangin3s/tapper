@@ -70,33 +70,33 @@ rand_int() {
   echo $((_min + (_r % _range)))
 }
 
-# tap_px X Y  — more realistic finger/thumb tap (multi-step for smooth evolution)
-# Now uses 3 progressive reports so orientation, pressure, size and position
-# change gradually (much closer to real finger "Bezier-like" settling instead of snapping).
+# tap_px X Y  — realistic but quick version (2 reports)
+# Kept good elliptical contact + orientation, but removed extra reports/sleeps
+# so it feels fast like the version you liked before.
 tap_px(){
   X=$1; Y=$2
 
-  # --- random human placement jitter (makes every tap slightly unique) ---
+  # --- random human placement jitter ---
   JX=$(rand_int -$JITTER_PX $JITTER_PX)
   JY=$(rand_int -$JITTER_PX $JITTER_PX)
   TX=$((X + JX))
   TY=$((Y + JY))
   DX=$(scale_x "$TX"); DY=$(scale_y "$TY")
 
-  # --- randomized contact parameters (fingerprint / thumb area feel) ---
-  TID=$(rand_int 30 220)                    # new tracking ID each tap
+  # --- randomized contact parameters (thumb-like) ---
+  TID=$(rand_int 30 220)
   PRESS=$(rand_int $PRESS_MIN $PRESS_MAX)
   MAJ=$(rand_int $MAJOR_MIN $MAJOR_MAX)
   MINO=$(rand_int $MINOR_MIN $MINOR_MAX)
   if [ "$MINO" -gt "$MAJ" ]; then _t=$MAJ; MAJ=$MINO; MINO=$_t; fi
   ORI=$(rand_int -$ORIENT_VAR $ORIENT_VAR)
 
-  # --- HOLD time with small variance ---
-  HOLD_MS=$(( HOLD_BASE_MS + $(rand_int -20 30) ))
-  [ "$HOLD_MS" -lt 25 ] && HOLD_MS=25
+  # short hold
+  HOLD_MS=$(( HOLD_BASE_MS + $(rand_int -10 15) ))
+  [ "$HOLD_MS" -lt 20 ] && HOLD_MS=20
 
   # ============================================================
-  # REPORT 1 — Initial contact (lighter pressure, initial ellipse)
+  # REPORT 1 — Initial contact
   # ============================================================
   se $EV_ABS $ABS_MT_SLOT 0
   se $EV_KEY $BTN_TOUCH 1
@@ -109,24 +109,24 @@ tap_px(){
   se $EV_ABS $ABS_MT_ORIENTATION "$ORI"
   se $EV_SYN $SYN_REPORT 0
 
-  sleep 0.012
+  sleep 0.018
 
   # ============================================================
-  # REPORT 2 — Early settle (small gradual changes — smooth transition)
+  # REPORT 2 — Quick settle + release prep
   # ============================================================
   JX2=$(rand_int -1 2)
   JY2=$(rand_int -1 2)
   DX2=$(scale_x $((TX + JX2)))
   DY2=$(scale_y $((TY + JY2)))
 
-  PRESS2=$(( PRESS + $(rand_int 5 18) ))
+  PRESS2=$((PRESS + $(rand_int 8 20)))
   [ "$PRESS2" -gt 200 ] && PRESS2=200
 
-  MAJ2=$((MAJ + $(rand_int -5 12)))
-  MINO2=$((MINO + $(rand_int -4 9)))
+  MAJ2=$((MAJ + $(rand_int -6 12)))
+  MINO2=$((MINO + $(rand_int -4 8)))
   [ "$MINO2" -gt "$MAJ2" ] && MINO2=$MAJ2
 
-  ORI2=$(rand_int $((ORI - 18)) $((ORI + 18)))   # bigger step so tilt visibly turns in visualizer
+  ORI2=$(rand_int $((ORI - 15)) $((ORI + 15)))
 
   se $EV_ABS $ABS_MT_POSITION_X "$DX2"
   se $EV_ABS $ABS_MT_POSITION_Y "$DY2"
@@ -136,38 +136,10 @@ tap_px(){
   se $EV_ABS $ABS_MT_ORIENTATION "$ORI2"
   se $EV_SYN $SYN_REPORT 0
 
-  sleep 0.015
+  sleep "0.0$HOLD_MS" 2>/dev/null || sleep 0.04
 
   # ============================================================
-  # REPORT 3 — Peak contact (final pressure/size/orientation — smooth arrival)
-  # ============================================================
-  JX3=$(rand_int -1 1)
-  JY3=$(rand_int -1 1)
-  DX3=$(scale_x $((TX + JX2 + JX3)))
-  DY3=$(scale_y $((TY + JY2 + JY3)))
-
-  PRESS3=$(( PRESS2 + $(rand_int 3 12) ))
-  [ "$PRESS3" -gt 200 ] && PRESS3=200
-
-  MAJ3=$((MAJ2 + $(rand_int -3 8)))
-  MINO3=$((MINO2 + $(rand_int -2 6)))
-  [ "$MINO3" -gt "$MAJ3" ] && MINO3=$MAJ3
-
-  ORI3=$(rand_int $((ORI2 - 15)) $((ORI2 + 15)))   # final bigger adjustment so you can see the line turning across reports
-
-  se $EV_ABS $ABS_MT_POSITION_X "$DX3"
-  se $EV_ABS $ABS_MT_POSITION_Y "$DY3"
-  se $EV_ABS $ABS_MT_TOUCH_MAJOR "$MAJ3"
-  se $EV_ABS $ABS_MT_TOUCH_MINOR "$MINO3"
-  se $EV_ABS $ABS_MT_PRESSURE "$PRESS3"
-  se $EV_ABS $ABS_MT_ORIENTATION "$ORI3"
-  se $EV_SYN $SYN_REPORT 0
-
-  # variable hold (more natural ~50-100ms total contact time)
-  sleep "0.0$HOLD_MS" 2>/dev/null || sleep 0.07
-
-  # ============================================================
-  # UP / release
+  # UP
   # ============================================================
   se $EV_ABS $ABS_MT_PRESSURE 0
   se $EV_ABS $ABS_MT_TRACKING_ID -1
