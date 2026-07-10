@@ -36,6 +36,54 @@ LIST="$API/storage/v1/object/list/$BUCKET"
 #function somewhere up here ? 
 log(){ echo "$(date '+%F %T') vidpost: $*"; }
 
+BOX=/data/adb/box/scripts/box.service
+
+proxy_on(){
+  log "enabling clash proxy"
+  "$BOX" start >/dev/null 2>&1
+}
+
+proxy_off(){
+  log "disabling clash proxy"
+  "$BOX" stop >/dev/null 2>&1
+}
+
+kill_snap(){
+  log "force-stopping Snapchat"
+  am force-stop com.snapchat.android
+  sleep 1
+  am force-stop com.google.android.apps.photos
+}
+
+# rsleep MIN MAX — sleep a random decimal in [MIN, MAX] seconds
+# usage: rsleep 1 6
+rsleep(){
+  LO=$(( $1 * 100 ))
+  HI=$(( $2 * 100 ))
+  SPAN=$(( HI - LO + 1 ))
+  R=$(( $(od -An -N2 -tu2 /dev/urandom | tr -d ' ') % SPAN + LO ))
+  S=$(( R / 100 ))
+  F=$(( R % 100 ))
+  sleep "$S.$(printf '%02d' "$F")"
+}
+
+random_caption(){
+  CAPTIONS="its OVER #fyp #emoney #apple
+yns at it again #fyp #apple
+u cant be srs bro im crine #fyp #apple
+always something with these yns #fyp #apple
+if you have apple wallet its OVER #fyp #apple"
+  N=$(printf '%s\n' "$CAPTIONS" | grep -c .)
+  PICK=$(( $(od -An -N2 -tu2 /dev/urandom | tr -d ' ') % N + 1 ))
+  printf '%s\n' "$CAPTIONS" | sed -n "${PICK}p"
+}
+
+# random delay between 0.10 and 0.40
+rand_delay(){
+  # random int 10-40, then format as 0.NN
+  R=$(( $(od -An -N2 -tu2 /dev/urandom | tr -d ' ') % 31 + 10 ))
+  printf '0.%02d' "$R"
+}
 
 tap_flow(){
 
@@ -52,7 +100,7 @@ tap_flow(){
 
     # sh "$LIB/findtap.sh" --id "com.snapchat.android:id/sent_to_button_label_mode_view"
     tap_px 879 2280
-    sleep 2
+    rsleep 4 7
     sh "$LIB/findtap.sh" "Spotlight"
     sleep 2
     sh "$LIB/findtap.sh" --offset "Spotlight" -300
@@ -60,12 +108,14 @@ tap_flow(){
     sleep 2
     sh "$LIB/findtap.sh" "Add a description..."
     sleep 2
-    s="hello"
+
+    s="$(random_caption)"
+    log "typing caption: $s"
     i=0
     while [ $i -lt ${#s} ]; do
       c=$(printf "%s" "$s" | cut -c $((i+1)))
-      input text "$c"
-      sleep 0.15
+      if [ "$c" = " " ]; then input text "%s"; else input text "$c"; fi
+      sleep "$(rand_delay)"
       i=$((i+1))
     done
     sleep 2
@@ -75,7 +125,9 @@ tap_flow(){
     # tap_px 541 2150
     sh "$LIB/findtap.sh" --desc "Next"
     sleep 1
-    # sh "$LIB/findtap.sh" --desc "Send"
+    #sh "$LIB/findtap.sh" --desc "Send"
+    kill_snap
+
 }
 
 # resolve HOST to an IP using the system resolver (static curl can't do DNS)
