@@ -59,7 +59,7 @@ MAJOR_MAX=${TAP_MAJOR_MAX:-195}
 MINOR_MIN=${TAP_MINOR_MIN:-95}
 MINOR_MAX=${TAP_MINOR_MAX:-165}
 ORIENT_VAR=${TAP_ORIENT_VAR:-35}        # +/- raw orientation units — increase for more visible natural tilt (like real finger angle)
-HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-70}    # base hold time before up (ms) — slightly longer for more natural feel
+HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-42}    # shorter hold for normal quick taps (user said it was holding too long)
 
 # Simple random int in [min, max] inclusive using /dev/urandom (no awk needed)
 rand_int() {
@@ -126,7 +126,7 @@ tap_px(){
   MINO2=$((MINO + $(rand_int -4 9)))
   [ "$MINO2" -gt "$MAJ2" ] && MINO2=$MAJ2
 
-  ORI2=$(rand_int $((ORI - 8)) $((ORI + 8)))   # small step toward final tilt
+  ORI2=$(rand_int $((ORI - 18)) $((ORI + 18)))   # bigger step so tilt visibly turns in visualizer
 
   se $EV_ABS $ABS_MT_POSITION_X "$DX2"
   se $EV_ABS $ABS_MT_POSITION_Y "$DY2"
@@ -153,7 +153,7 @@ tap_px(){
   MINO3=$((MINO2 + $(rand_int -2 6)))
   [ "$MINO3" -gt "$MAJ3" ] && MINO3=$MAJ3
 
-  ORI3=$(rand_int $((ORI2 - 6)) $((ORI2 + 6)))   # final small adjustment to tilt
+  ORI3=$(rand_int $((ORI2 - 15)) $((ORI2 + 15)))   # final bigger adjustment so you can see the line turning across reports
 
   se $EV_ABS $ABS_MT_POSITION_X "$DX3"
   se $EV_ABS $ABS_MT_POSITION_Y "$DY3"
