@@ -58,7 +58,7 @@ MAJOR_MIN=${TAP_MAJOR_MIN:-125}
 MAJOR_MAX=${TAP_MAJOR_MAX:-195}
 MINOR_MIN=${TAP_MINOR_MIN:-95}
 MINOR_MAX=${TAP_MINOR_MAX:-165}
-ORIENT_VAR=${TAP_ORIENT_VAR:-12}        # +/- raw orientation units
+ORIENT_VAR=${TAP_ORIENT_VAR:-35}        # +/- raw orientation units — increase for more visible natural tilt (like real finger angle)
 HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-55}    # base hold time before up (ms)
 
 # Simple random int in [min, max] inclusive using /dev/urandom (no awk needed)
@@ -133,7 +133,7 @@ tap_px(){
   [ "$MAJ2" -lt 80 ] && MAJ2=80
   [ "$MINO2" -lt 60 ] && MINO2=60
 
-  ORI2=$(rand_int $((ORI - 5)) $((ORI + 5)))
+  ORI2=$(rand_int $((ORI - 12)) $((ORI + 12)))   # give the settle report its own slight orientation drift like real finger adjustment
 
   se $EV_ABS $ABS_MT_POSITION_X "$DX2"
   se $EV_ABS $ABS_MT_POSITION_Y "$DY2"

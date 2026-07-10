@@ -13,7 +13,7 @@
 # ============================================================
 
 HERE="${MODTAP:-${0%/*}}"
-. "$HERE/taplib.sh"
+. "$HERE/taplibh.sh"
 
 DUMP="${FINDTAP_DUMP:-/data/local/tmp/ui.xml}"
 

@@ -12,7 +12,7 @@
 # --resolve. -k is needed because the static bauild has no CA store.
 # ============================================================
 LIB="${MODTAP:-/data/local/tmp/autotapper_repo/tapper}"   # <- match your real layout
-. "$LIB/taplib.sh" || { echo "cannot source taplib.sh at $LIB"; exit 1; }
+. "$LIB/taplibh.sh" || { echo "cannot source taplib.sh at $LIB"; exit 1; }
 MODTAP="${MODTAP:-/data/adb/modules/autotapper/tapper}"
 CURL="$MODTAP/bin/curl"
 chmod 755 "$CURL" 2>/dev/null
