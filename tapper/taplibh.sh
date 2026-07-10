@@ -52,14 +52,14 @@ scale_y(){ echo $(( $1 * MAXY / SCRH )); }
 # Good starting point for Pixel 6 fts — tweak while watching getevent -l
 # ------------------------------------------------------------
 JITTER_PX=${TAP_JITTER_PX:-3}           # +/- pixels random offset from center (0 = precise)
-PRESS_MIN=${TAP_PRESS_MIN:-45}
-PRESS_MAX=${TAP_PRESS_MAX:-115}
+PRESS_MIN=${TAP_PRESS_MIN:-55}          # raised for better button registration reliability
+PRESS_MAX=${TAP_PRESS_MAX:-125}
 MAJOR_MIN=${TAP_MAJOR_MIN:-125}
 MAJOR_MAX=${TAP_MAJOR_MAX:-195}
 MINOR_MIN=${TAP_MINOR_MIN:-95}
 MINOR_MAX=${TAP_MINOR_MAX:-165}
 ORIENT_VAR=${TAP_ORIENT_VAR:-35}        # +/- raw orientation units — increase for more visible natural tilt (like real finger angle)
-HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-55}    # base hold time before up (ms)
+HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-70}    # base hold time before up (ms) — slightly longer for more natural feel
 
 # Simple random int in [min, max] inclusive using /dev/urandom (no awk needed)
 rand_int() {
@@ -70,8 +70,9 @@ rand_int() {
   echo $((_min + (_r % _range)))
 }
 
-# tap_px X Y  — more realistic finger/thumb tap
-# Replays protocol B style events with variance + dynamics
+# tap_px X Y  — more realistic finger/thumb tap (multi-step for smooth evolution)
+# Now uses 3 progressive reports so orientation, pressure, size and position
+# change gradually (much closer to real finger "Bezier-like" settling instead of snapping).
 tap_px(){
   X=$1; Y=$2
 
@@ -87,18 +88,17 @@ tap_px(){
   PRESS=$(rand_int $PRESS_MIN $PRESS_MAX)
   MAJ=$(rand_int $MAJOR_MIN $MAJOR_MAX)
   MINO=$(rand_int $MINOR_MIN $MINOR_MAX)
-  # ensure sensible ellipse (major usually >= minor)
   if [ "$MINO" -gt "$MAJ" ]; then _t=$MAJ; MAJ=$MINO; MINO=$_t; fi
   ORI=$(rand_int -$ORIENT_VAR $ORIENT_VAR)
 
   # --- HOLD time with small variance ---
-  HOLD_MS=$(( HOLD_BASE_MS + $(rand_int -15 25) ))
-  [ "$HOLD_MS" -lt 20 ] && HOLD_MS=20
+  HOLD_MS=$(( HOLD_BASE_MS + $(rand_int -20 30) ))
+  [ "$HOLD_MS" -lt 25 ] && HOLD_MS=25
 
   # ============================================================
-  # DOWN / initial contact  (real finger starts with lower pressure + smaller area often)
+  # REPORT 1 — Initial contact (lighter pressure, initial ellipse)
   # ============================================================
-  se $EV_ABS $ABS_MT_SLOT 0                 # explicit for proper Type B protocol
+  se $EV_ABS $ABS_MT_SLOT 0
   se $EV_KEY $BTN_TOUCH 1
   se $EV_ABS $ABS_MT_TRACKING_ID "$TID"
   se $EV_ABS $ABS_MT_POSITION_X "$DX"
@@ -109,31 +109,24 @@ tap_px(){
   se $EV_ABS $ABS_MT_ORIENTATION "$ORI"
   se $EV_SYN $SYN_REPORT 0
 
-  # ============================================================
-  # Micro-settle update (after ~25ms) — simulates real finger pulp adjusting
-  # Slight position drift, pressure change, contact area morphing.
-  # This is what makes it look like a living fingerprint instead of on/off switch.
-  # ============================================================
-  sleep 0.025
+  sleep 0.018
 
-  # small deltas for second report
-  JX2=$(rand_int -2 2)
-  JY2=$(rand_int -2 2)
+  # ============================================================
+  # REPORT 2 — Early settle (small gradual changes — smooth transition)
+  # ============================================================
+  JX2=$(rand_int -1 2)
+  JY2=$(rand_int -1 2)
   DX2=$(scale_x $((TX + JX2)))
   DY2=$(scale_y $((TY + JY2)))
 
-  # pressure often peaks a bit after initial contact
-  PRESS2=$(rand_int $((PRESS + 8)) $((PRESS + 30)))
+  PRESS2=$(( PRESS + $(rand_int 5 18) ))
   [ "$PRESS2" -gt 200 ] && PRESS2=200
 
-  # contact patch can grow or shift slightly as finger settles
-  MAJ2=$((MAJ + $(rand_int -8 18)))
-  MINO2=$((MINO + $(rand_int -6 12)))
+  MAJ2=$((MAJ + $(rand_int -5 12)))
+  MINO2=$((MINO + $(rand_int -4 9)))
   [ "$MINO2" -gt "$MAJ2" ] && MINO2=$MAJ2
-  [ "$MAJ2" -lt 80 ] && MAJ2=80
-  [ "$MINO2" -lt 60 ] && MINO2=60
 
-  ORI2=$(rand_int $((ORI - 12)) $((ORI + 12)))   # give the settle report its own slight orientation drift like real finger adjustment
+  ORI2=$(rand_int $((ORI - 8)) $((ORI + 8)))   # small step toward final tilt
 
   se $EV_ABS $ABS_MT_POSITION_X "$DX2"
   se $EV_ABS $ABS_MT_POSITION_Y "$DY2"
@@ -143,12 +136,38 @@ tap_px(){
   se $EV_ABS $ABS_MT_ORIENTATION "$ORI2"
   se $EV_SYN $SYN_REPORT 0
 
-  # variable hold (total ~40-80ms typical human tap)
-  # toybox sleep supports fractional like 0.055
-  sleep "0.0$HOLD_MS" 2>/dev/null || sleep 0.06
+  sleep 0.022
 
   # ============================================================
-  # UP / release  (zero pressure, release tracking ID)
+  # REPORT 3 — Peak contact (final pressure/size/orientation — smooth arrival)
+  # ============================================================
+  JX3=$(rand_int -1 1)
+  JY3=$(rand_int -1 1)
+  DX3=$(scale_x $((TX + JX2 + JX3)))
+  DY3=$(scale_y $((TY + JY2 + JY3)))
+
+  PRESS3=$(( PRESS2 + $(rand_int 3 12) ))
+  [ "$PRESS3" -gt 200 ] && PRESS3=200
+
+  MAJ3=$((MAJ2 + $(rand_int -3 8)))
+  MINO3=$((MINO2 + $(rand_int -2 6)))
+  [ "$MINO3" -gt "$MAJ3" ] && MINO3=$MAJ3
+
+  ORI3=$(rand_int $((ORI2 - 6)) $((ORI2 + 6)))   # final small adjustment to tilt
+
+  se $EV_ABS $ABS_MT_POSITION_X "$DX3"
+  se $EV_ABS $ABS_MT_POSITION_Y "$DY3"
+  se $EV_ABS $ABS_MT_TOUCH_MAJOR "$MAJ3"
+  se $EV_ABS $ABS_MT_TOUCH_MINOR "$MINO3"
+  se $EV_ABS $ABS_MT_PRESSURE "$PRESS3"
+  se $EV_ABS $ABS_MT_ORIENTATION "$ORI3"
+  se $EV_SYN $SYN_REPORT 0
+
+  # variable hold (more natural ~50-100ms total contact time)
+  sleep "0.0$HOLD_MS" 2>/dev/null || sleep 0.07
+
+  # ============================================================
+  # UP / release
   # ============================================================
   se $EV_ABS $ABS_MT_PRESSURE 0
   se $EV_ABS $ABS_MT_TRACKING_ID -1
