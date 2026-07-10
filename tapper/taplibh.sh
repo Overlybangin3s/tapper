@@ -54,10 +54,10 @@ scale_y(){ echo $(( $1 * MAXY / SCRH )); }
 JITTER_PX=${TAP_JITTER_PX:-3}           # +/- pixels random offset from center (0 = precise)
 PRESS_MIN=${TAP_PRESS_MIN:-55}          # raised for better button registration reliability
 PRESS_MAX=${TAP_PRESS_MAX:-125}
-MAJOR_MIN=${TAP_MAJOR_MIN:-125}
-MAJOR_MAX=${TAP_MAJOR_MAX:-195}
-MINOR_MIN=${TAP_MINOR_MIN:-95}
-MINOR_MAX=${TAP_MINOR_MAX:-165}
+MAJOR_MIN=${TAP_MAJOR_MIN:-160}     # increased for more elongated thumb-like contact
+MAJOR_MAX=${TAP_MAJOR_MAX:-220}
+MINOR_MIN=${TAP_MINOR_MIN:-80}      # lowered to create clearer ellipse (better visible tilt)
+MINOR_MAX=${TAP_MINOR_MAX:-130}
 ORIENT_VAR=${TAP_ORIENT_VAR:-35}        # +/- raw orientation units — increase for more visible natural tilt (like real finger angle)
 HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-42}    # shorter hold for normal quick taps (user said it was holding too long)
 
