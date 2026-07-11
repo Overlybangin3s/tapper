@@ -103,7 +103,7 @@ tap_flow(){
     rsleep 4 7
     sh "$LIB/findtap.sh" "Spotlight"
     sleep 2
-    sh "$LIB/findtap.sh" --offset "Spotlight" -300
+    sh "$LIB/findtap.sh" --offset "Spotlight" -330
  
     sleep 2
     sh "$LIB/findtap.sh" "Add a description..."

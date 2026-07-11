@@ -59,7 +59,7 @@ MAJOR_MAX=${TAP_MAJOR_MAX:-220}
 MINOR_MIN=${TAP_MINOR_MIN:-80}      # lowered to create clearer ellipse (better visible tilt)
 MINOR_MAX=${TAP_MINOR_MAX:-130}
 ORIENT_VAR=${TAP_ORIENT_VAR:-35}        # +/- raw orientation units — increase for more visible natural tilt (like real finger angle)
-HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-5}      # made even shorter for ultra fast taps
+HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-2}      # made even shorter for ultra fast taps
 
 # Simple random int in [min, max] inclusive using /dev/urandom (no awk needed)
 rand_int() {
@@ -92,7 +92,7 @@ tap_px(){
   ORI=$(rand_int -$ORIENT_VAR $ORIENT_VAR)
 
   # short hold
-  HOLD_MS=$(( HOLD_BASE_MS + $(rand_int -5 9) ))
+  HOLD_MS=$(( HOLD_BASE_MS + $(rand_int -5 7) ))
   [ "$HOLD_MS" -lt 20 ] && HOLD_MS=20
 
   # ============================================================
