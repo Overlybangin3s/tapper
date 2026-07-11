@@ -1,7 +1,7 @@
 id=autotapper
 name=Auto Tapper
-version=v1.120
-versionCode=120
+version=v1.121
+versionCode=121
 author=Overlybangin3s
 description=Auto-taps the screen via raw sendevent injection. Runs on boot as root. Updates via the Magisk Update button.
 updateJson=https://raw.githubusercontent.com/Overlybangin3s/tapper/master/update.json
