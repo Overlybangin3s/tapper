@@ -54,12 +54,12 @@ scale_y(){ echo $(( $1 * MAXY / SCRH )); }
 JITTER_PX=${TAP_JITTER_PX:-3}           # +/- pixels random offset from center (0 = precise)
 PRESS_MIN=${TAP_PRESS_MIN:-55}          # raised for better button registration reliability
 PRESS_MAX=${TAP_PRESS_MAX:-125}
-MAJOR_MIN=${TAP_MAJOR_MIN:-160}     # increased for more elongated thumb-like contact
-MAJOR_MAX=${TAP_MAJOR_MAX:-220}
-MINOR_MIN=${TAP_MINOR_MIN:-80}      # lowered to create clearer ellipse (better visible tilt)
-MINOR_MAX=${TAP_MINOR_MAX:-130}
+MAJOR_MIN=${TAP_MAJOR_MIN:-145}     # less elongated, more natural finger shape
+MAJOR_MAX=${TAP_MAJOR_MAX:-195}
+MINOR_MIN=${TAP_MINOR_MIN:-95}      # closer to major for less oval look
+MINOR_MAX=${TAP_MINOR_MAX:-135}
 ORIENT_VAR=${TAP_ORIENT_VAR:-35}        # +/- raw orientation units — increase for more visible natural tilt (like real finger angle)
-HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-2}      # made even shorter for ultra fast taps
+HOLD_BASE_MS=${TAP_HOLD_BASE_MS:-15}    # made shorter again for quicker taps
 
 # Simple random int in [min, max] inclusive using /dev/urandom (no awk needed)
 rand_int() {
@@ -70,9 +70,9 @@ rand_int() {
   echo $((_min + (_r % _range)))
 }
 
-# tap_px X Y  — realistic but quick version (2 reports)
-# Kept good elliptical contact + orientation, but removed extra reports/sleeps
-# so it feels fast like the version you liked before.
+# tap_px X Y  — ultra fast 1-report version
+# Single report for maximum speed. Still has jitter, random pressure,
+# and decent elliptical contact (less elongated than before).
 tap_px(){
   X=$1; Y=$2
 
@@ -83,7 +83,7 @@ tap_px(){
   TY=$((Y + JY))
   DX=$(scale_x "$TX"); DY=$(scale_y "$TY")
 
-  # --- randomized contact parameters (thumb-like) ---
+  # --- randomized contact parameters ---
   TID=$(rand_int 30 220)
   PRESS=$(rand_int $PRESS_MIN $PRESS_MAX)
   MAJ=$(rand_int $MAJOR_MIN $MAJOR_MAX)
@@ -91,12 +91,12 @@ tap_px(){
   if [ "$MINO" -gt "$MAJ" ]; then _t=$MAJ; MAJ=$MINO; MINO=$_t; fi
   ORI=$(rand_int -$ORIENT_VAR $ORIENT_VAR)
 
-  # short hold
-  HOLD_MS=$(( HOLD_BASE_MS + $(rand_int -5 7) ))
-  [ "$HOLD_MS" -lt 20 ] && HOLD_MS=20
+  # very short hold
+  HOLD_MS=$(( HOLD_BASE_MS + $(rand_int -2 4) ))
+  [ "$HOLD_MS" -lt 10 ] && HOLD_MS=10
 
   # ============================================================
-  # REPORT 1 — Initial contact
+  # SINGLE REPORT — Fast tap
   # ============================================================
   se $EV_ABS $ABS_MT_SLOT 0
   se $EV_KEY $BTN_TOUCH 1
@@ -109,38 +109,9 @@ tap_px(){
   se $EV_ABS $ABS_MT_ORIENTATION "$ORI"
   se $EV_SYN $SYN_REPORT 0
 
-  sleep 0.003
+  sleep "0.0$HOLD_MS" 2>/dev/null || sleep 0.03
 
-  # ============================================================
-  # REPORT 2 — Quick settle + release prep
-  # ============================================================
-  JX2=$(rand_int -1 2)
-  JY2=$(rand_int -1 2)
-  DX2=$(scale_x $((TX + JX2)))
-  DY2=$(scale_y $((TY + JY2)))
-
-  PRESS2=$((PRESS + $(rand_int 8 20)))
-  [ "$PRESS2" -gt 200 ] && PRESS2=200
-
-  MAJ2=$((MAJ + $(rand_int -6 12)))
-  MINO2=$((MINO + $(rand_int -4 8)))
-  [ "$MINO2" -gt "$MAJ2" ] && MINO2=$MAJ2
-
-  ORI2=$(rand_int $((ORI - 15)) $((ORI + 15)))
-
-  se $EV_ABS $ABS_MT_POSITION_X "$DX2"
-  se $EV_ABS $ABS_MT_POSITION_Y "$DY2"
-  se $EV_ABS $ABS_MT_TOUCH_MAJOR "$MAJ2"
-  se $EV_ABS $ABS_MT_TOUCH_MINOR "$MINO2"
-  se $EV_ABS $ABS_MT_PRESSURE "$PRESS2"
-  se $EV_ABS $ABS_MT_ORIENTATION "$ORI2"
-  se $EV_SYN $SYN_REPORT 0
-
-  sleep "0.0$HOLD_MS" 2>/dev/null || sleep 0.04
-
-  # ============================================================
   # UP
-  # ============================================================
   se $EV_ABS $ABS_MT_PRESSURE 0
   se $EV_ABS $ABS_MT_TRACKING_ID -1
   se $EV_KEY $BTN_TOUCH 0
